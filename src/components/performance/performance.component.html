@@ -1,0 +1,173 @@
+<div class="space-y-8">
+  <header>
+    <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#003fb5] to-blue-500">Campaign Performance</h1>
+    <p class="mt-1 text-slate-500">Track live content, monitor performance, and gain AI-powered insights.</p>
+  </header>
+
+  <div class="bg-white rounded-lg shadow-lg">
+    <!-- Tabs Navigation -->
+    <div class="px-4 sm:px-6 flex">
+      <div class="flex items-center gap-2 overflow-x-auto" (dragover)="$event.preventDefault()">
+        <button (click)="selectedCampaignId.set('all')" 
+                class="whitespace-nowrap px-4 py-3 text-sm font-semibold border-b-2 transition-all"
+                [class]="selectedCampaignId() === 'all' 
+                        ? 'border-[#003fb5] text-slate-800 bg-[#003fb5]/10' 
+                        : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'">
+          All Campaigns
+        </button>
+        @for(campaign of campaigns(); track campaign.id; let i = $index) {
+          <button (click)="selectedCampaignId.set(campaign.id)" 
+                  draggable="true"
+                  (dragstart)="onCampaignDragStart(i)"
+                  (drop)="onCampaignDrop(i)"
+                  [class.dragging]="draggedCampaignIndex() === i"
+                  class="whitespace-nowrap px-4 py-3 text-sm font-semibold border-b-2 transition-all draggable-item"
+                  [class]="selectedCampaignId() === campaign.id 
+                          ? 'border-[#003fb5] text-slate-800 bg-[#003fb5]/10' 
+                          : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'">
+            {{ campaign.name }}
+          </button>
+        }
+      </div>
+    </div>
+    
+    <div class="p-4 sm:p-6 space-y-12">
+      <!-- Live Content Section -->
+      <div>
+        <h2 class="text-xl font-bold text-slate-800">Live Content</h2>
+        @if(liveContentInfluencers().length > 0) {
+          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for(influencer of liveContentInfluencers(); track influencer.id) {
+              @for(deliverable of influencer.deliverables!; track deliverable) {
+                <div class="rounded-lg shadow-md flex flex-col bg-white hover:-translate-y-1 transition-transform duration-300 overflow-hidden ring-1 ring-slate-100">
+                  <div class="p-4">
+                    <div class="flex justify-between items-start">
+                      <div class="flex items-center gap-3">
+                        <img class="w-10 h-10 rounded-full object-cover" [src]="influencer.avatarUrl" [alt]="influencer.name">
+                        <div>
+                          <a [routerLink]="['/influencer', influencer.id]" class="font-bold text-slate-900 hover:underline">{{ influencer.name }}</a>
+                          <a [routerLink]="['/influencer', influencer.id]" class="text-sm text-slate-500 hover:underline">@{{ influencer.handle }}</a>
+                        </div>
+                      </div>
+                      @if(selectedCampaignId() === 'all') {
+                          <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{{ influencer.campaignName }}</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="bg-slate-100 aspect-video flex items-center justify-center">
+                    @if(getSafeYouTubeUrl(deliverable)) {
+                      <iframe class="w-full h-full" [src]="getSafeYouTubeUrl(deliverable)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    } @else {
+                      <a [href]="deliverable" target="_blank" class="text-[#003fb5] hover:underline p-4 text-center">
+                        View Content <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      </a>
+                    }
+                  </div>
+                  <div class="p-4 mt-auto bg-white">
+                      <div class="flex justify-between items-center">
+                          <h3 class="font-semibold text-sm text-slate-800">Sentiment Analysis (Mock)</h3>
+                          <span class="text-sm font-medium text-blue-600">Positive</span>
+                      </div>
+                      <div class="flex justify-between text-xs text-slate-600 mt-2">
+                          <span>Views: 1.2M</span>
+                          <span>Engagement: 5.4%</span>
+                      </div>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        } @else {
+            <div class="text-center py-12 text-slate-500 bg-slate-50 rounded-lg">
+                <p>No live content to display for this selection.</p>
+            </div>
+        }
+      </div>
+      
+      <!-- Performance Dashboard & AI Insights -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+           <h2 class="text-xl font-bold text-slate-800">Performance Dashboard</h2>
+           <div class="mt-4 h-64 bg-slate-100 flex items-center justify-center rounded-lg">
+                <p class="text-slate-500">Performance charts will be displayed here.</p>
+           </div>
+        </div>
+        <div>
+           <h2 class="text-xl font-bold text-slate-800">AI Insight & Analysis</h2>
+            <div class="mt-4 p-4 h-64 bg-slate-100 rounded-lg flex flex-col">
+              @if(isGeneratingInsights()) {
+                <div class="flex items-center justify-center flex-1">
+                  <p class="text-slate-500 animate-pulse">Analyzing content performance...</p>
+                </div>
+              } @else if(aiInsights()) {
+                <p class="text-sm text-slate-700 flex-1">{{ aiInsights() }}</p>
+              } @else {
+                <div class="flex items-center justify-center flex-1">
+                   <button (click)="generateAiInsights()" class="primary-btn inline-flex items-center gap-2 px-4 py-2 bg-[#003fb5] text-white font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#003fb5] transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 48 48"><path fill="#fff" d="M23.426,31.911l-1.719,3.936c-0.661,1.513-2.754,1.513-3.415,0l-1.719-3.936 c-1.529-3.503-4.282-6.291-7.716-7.815l-4.73-2.1c-1.504-0.668-1.504-2.855,0-3.523l4.583-2.034 c3.522-1.563,6.324-4.455,7.827-8.077l1.741-4.195c0.646-1.557,2.797-1.557,3.443,0l1.741,4.195 c1.503,3.622,4.305,6.514,7.827,8.077l4.583,2.034c1.504,0.668,1.504,2.855,0,3.523l-4.73,2.1 C27.708,25.62,24.955,28.409,23.426,31.911z"></path><path fill="#fff" d="M38.423,43.248l-0.493,1.131c-0.361,0.828-1.507,0.828-1.868,0l-0.493-1.131 c-0.879-2.016-2.464-3.621-4.44-4.5l-1.52-0.675c-0.822-0.365-0.822-1.56,0-1.925l1.435-0.638c2.027-0.901,3.64-2.565,4.504-4.65 l0.507-1.222c0.353-0.852,1.531-0.852,1.884,0l0.507,1.222c0.864,2.085,2.477,3.749,4.504,4.65l1.435,0.638 c0.822,0.365,0.822,1.56,0,1.925l-1.52,0.675C40.887,39.627,39.303,41.232,38.423,43.248z"></path></svg>
+                    Generate Insights
+                  </button>
+                </div>
+              }
+              <button (click)="generateAiInsights()" [disabled]="isGeneratingInsights()" class="text-xs text-slate-500 hover:text-[#003fb5] disabled:opacity-50 mt-auto transition-all">Regenerate</button>
+            </div>
+        </div>
+      </div>
+
+      <!-- Awaiting Content Section -->
+      <div>
+        <h2 class="text-xl font-bold text-slate-800">Awaiting Content</h2>
+        @if(awaitingContentInfluencers().length > 0) {
+           <div class="overflow-x-auto mt-4">
+                <table class="w-full text-sm text-left text-slate-500">
+                    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 min-w-[250px]">Influencer</th>
+                             @if(selectedCampaignId() === 'all') {
+                                <th scope="col" class="px-6 py-3">Campaign</th>
+                             }
+                            <th scope="col" class="px-6 py-3">Contract Details</th>
+                            <th scope="col" class="px-6 py-3">Payment Info</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for(influencer of awaitingContentInfluencers(); track influencer.id) {
+                            <tr class="bg-white hover:bg-slate-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <img class="w-10 h-10 rounded-full object-cover" [src]="influencer.avatarUrl" [alt]="influencer.name">
+                                        <div>
+                                            <a [routerLink]="['/influencer', influencer.id]" class="font-bold text-slate-900 hover:underline">{{ influencer.name }}</a>
+                                            <a [routerLink]="['/influencer', influencer.id]" class="text-sm text-slate-500 hover:underline">@{{ influencer.handle }}</a>
+                                        </div>
+                                    </div>
+                                </td>
+                                 @if(selectedCampaignId() === 'all') {
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{{ influencer.campaignName }}</span>
+                                    </td>
+                                 }
+                                <td class="px-6 py-4">
+                                    @if (influencer.documents && influencer.documents.length > 0) {
+                                        @for(doc of influencer.documents; track doc.name) {
+                                            <a [href]="doc.url" target="_blank" class="text-[#003fb5] hover:underline">{{doc.name}}</a>
+                                        }
+                                    } @else {
+                                        <span class="text-slate-400">None</span>
+                                    }
+                                </td>
+                                <td class="px-6 py-4"><span class="font-medium text-slate-800">${{influencer.budget?.toLocaleString()}}</span> <span class="text-slate-500">({{influencer.paymentStatus}})</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+           </div>
+        } @else {
+            <div class="text-center py-12 text-slate-500 bg-slate-50 rounded-lg">
+                <p>No influencers are currently in the 'Awaiting Content' stage.</p>
+            </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

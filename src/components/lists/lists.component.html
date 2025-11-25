@@ -1,0 +1,419 @@
+<div class="space-y-4">
+  <header>
+    <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#003fb5] to-blue-500">Campaign Management</h1>
+    <p class="mt-1 text-slate-500">Manage your influencer campaigns and track their progress from negotiation to content delivery.</p>
+  </header>
+
+  <div class="bg-white rounded-lg shadow-lg flex flex-col h-[calc(100vh-200px)]">
+    <!-- Campaign Tabs Navigation -->
+    <div class="px-4 sm:px-6 pt-4 flex justify-between items-end">
+      <div class="flex items-center gap-2 overflow-x-auto" (dragover)="$event.preventDefault()">
+        <button (click)="selectView('manage')" 
+                class="flex items-center gap-2 whitespace-nowrap px-4 pr-8 py-3 text-sm font-semibold border-b-2 transition-colors rounded-t-lg"
+                [class]="viewMode() === 'manage' 
+                        ? 'border-[#003fb5] bg-[#003fb5] text-white' 
+                        : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50'">
+          Manage
+        </button>
+        <div class="h-6 w-px bg-slate-200"></div>
+        @for(campaign of campaigns(); track campaign.id; let i = $index) {
+          <div class="relative group/item draggable-item" 
+               draggable="true" 
+               [class.dragging]="draggedCampaignIndex() === i"
+               (dragstart)="onCampaignDragStart(i)" 
+               (drop)="onCampaignDrop(i)">
+            <button (click)="selectCampaign(campaign.id)" 
+                    class="flex items-center gap-2 whitespace-nowrap px-4 pr-8 py-3 text-sm font-semibold border-b-2 transition-colors rounded-t-lg"
+                    [class]="selectedCampaignId() === campaign.id && viewMode() === 'kanban'
+                            ? 'border-[#003fb5] text-slate-800 bg-[#003fb5]/10' 
+                            : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50'">
+              {{ campaign.name }}
+            </button>
+            <button (click)="showDeleteModal.set(campaign); $event.stopPropagation()" title="Delete campaign" class="absolute top-1/2 -translate-y-1/2 right-1 p-1 text-slate-400 hover:bg-slate-200 rounded-full hover:text-slate-600 opacity-0 group-hover/item:opacity-100 transition-opacity">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+            </button>
+          </div>
+        }
+        <button (click)="createNewCampaign()" title="New Campaign" class="ml-2 p-2 text-[#003fb5] hover:bg-blue-100 rounded-full transition-colors">
+            <app-icon featureName="Add" size="24"></app-icon>
+        </button>
+      </div>
+    </div>
+    
+    <div class="flex-grow overflow-auto bg-slate-50 rounded-b-lg">
+      @if (viewMode() === 'kanban') {
+        @if (selectedCampaignId()) {
+          @if (status() === 'loading') {
+            <div class="text-center py-8 text-slate-500">Loading influencers...</div>
+          } @else if (campaignInfluencers().length > 0 || kanbanColumns().length > 0) {
+            <div class="flex h-full gap-4 p-4" (dragover)="$event.preventDefault()">
+              @for(status of kanbanColumns(); track status; let i = $index) {
+                  @let influencersInStatus = influencersByStatus().get(status) || [];
+                  <div class="w-72 flex-shrink-0 bg-slate-100 rounded-lg flex flex-col draggable-item"
+                       draggable="true"
+                       [class.dragging]="draggedColumnIndex() === i"
+                       (dragstart)="onColumnDragStart(i)"
+                       (drop)="onColumnDrop(i)"
+                       (dragover)="dragOverColumn.set(status)"
+                       (dragleave)="dragOverColumn.set(null)"
+                       [class.bg-blue-100]="dragOverColumn() === status">
+                    
+                    <div class="p-3 bg-slate-100 rounded-t-lg group relative">
+                      @if (editingColumn()?.originalName === status) {
+                        <div class="flex items-center gap-1">
+                          <input [(ngModel)]="editingColumn()!.newName" (keydown.enter)="saveColumnName()" (keydown.escape)="cancelEditingColumn()" type="text" class="w-full text-sm font-semibold border border-blue-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                          <button (click)="saveColumnName()" class="p-1 text-green-600 hover:bg-green-100 rounded-md"><app-icon featureName="Add" size="16"></app-icon></button>
+                          <button (click)="cancelEditingColumn()" class="p-1 text-red-600 hover:bg-red-100 rounded-md"><app-icon featureName="Close" size="16"></app-icon></button>
+                        </div>
+                      } @else {
+                        <h3 class="font-semibold text-sm text-slate-700">{{ status }} <span class="text-xs text-slate-400">{{ influencersInStatus.length }}</span></h3>
+                        <div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <button (click)="startEditingColumn(status)" class="p-1 text-slate-500 hover:bg-slate-200 rounded-md"><app-icon featureName="Compose" size="14"></app-icon></button>
+                           <button (click)="showDeleteColumnModal.set(status)" class="p-1 text-slate-500 hover:bg-slate-200 rounded-md"><app-icon featureName="Delete" size="14"></app-icon></button>
+                        </div>
+                      }
+                    </div>
+                    
+                    <div class="p-2 space-y-2 flex-grow overflow-y-auto" (drop)="onCardDropOnColumn(status)">
+                      @for(influencer of influencersInStatus; track influencer.id) {
+                        <div draggable="true"
+                             (dragstart)="onCardDragStart(influencer)"
+                             (dragend)="onCardDragEnd()"
+                             [class.opacity-50]="draggedInfluencer()?.id === influencer.id"
+                             class="bg-white p-3 rounded-md shadow-sm cursor-grab active:cursor-grabbing draggable-item group relative">
+                          <div class="flex items-start justify-between">
+                              <div class="flex items-center gap-3">
+                                  <img [src]="influencer.avatarUrl" [alt]="influencer.name" class="w-10 h-10 rounded-full object-cover">
+                                  <div>
+                                      <a [routerLink]="['/influencer', influencer.id]" class="font-bold text-sm text-slate-900 hover:underline">{{ influencer.name }}</a>
+                                      <div class="flex items-center gap-2 mt-1">
+                                          @for(platform of influencer.platforms; track platform.name) {
+                                            <div [innerHTML]="platformLogos[platform.name] | safeHtml" class="w-4 h-4 text-slate-500"></div>
+                                          }
+                                      </div>
+                                  </div>
+                              </div>
+                               <button (click)="toggleCardExpansion(influencer.id)" class="p-1 text-slate-400 hover:bg-slate-100 rounded-full">
+                                  <app-icon featureName="ChevronDown" size="16" class="transition-transform" [class.rotate-180]="expandedCardId() === influencer.id"></app-icon>
+                               </button>
+                          </div>
+                          @if(expandedCardId() === influencer.id) {
+                            <div class="mt-3 pt-3 border-t border-slate-100 text-xs space-y-1 animate-fade-in">
+                                <p class="text-slate-600"><strong>Followers:</strong> {{ influencer.followers.toLocaleString() }}</p>
+                                <p class="text-slate-600"><strong>Location:</strong> {{ influencer.country }}</p>
+                            </div>
+                          }
+                          <div class="absolute top-2 right-10 hidden group-hover:flex items-center gap-1 bg-white p-1 rounded-md shadow">
+                              @let conv = getConversationForInfluencer(influencer.id);
+                              @if(conv) {
+                                  <a [routerLink]="['/conversations']" [queryParams]="{ select: conv.id }" title="Open conversation" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md"><app-icon featureName="Conversations" size="16"></app-icon></a>
+                              } @else {
+                                  <a [routerLink]="['/conversations']" [queryParams]="{ recipientEmail: influencer.email, recipientName: influencer.name }" title="Start conversation" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md"><app-icon featureName="Conversations" size="16"></app-icon></a>
+                              }
+                              <button (click)="showRemoveInfluencerModal.set(influencer)" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-md"><app-icon featureName="Delete" size="16"></app-icon></button>
+                          </div>
+                        </div>
+                      }
+                       <button (click)="openAddInfluencerModal(status)" class="w-full flex items-center justify-center gap-2 p-2 text-sm text-slate-500 hover:bg-slate-200 hover:text-slate-700 rounded-md transition-colors">
+                          <app-icon featureName="Add" size="16"></app-icon>
+                          Add Influencer
+                       </button>
+                    </div>
+                  </div>
+              }
+            </div>
+          } @else {
+               <div class="flex flex-col items-center justify-center h-full text-center py-12 text-slate-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-10 w-10 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 4h5m-5 4h5m-5-4h.01M9 7h.01M13 7h.01M13 11h.01M13 15h.01M9 15h.01" /></svg>
+                  <p class="mt-4 font-semibold">This campaign is empty.</p>
+                  <p class="text-sm">Add influencers from the Discovery page to get started.</p>
+              </div>
+          }
+        } @else {
+          <div class="flex flex-col items-center justify-center h-full text-center py-12 text-slate-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="mx-auto w-12 h-12 text-slate-400"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h7.5M8.25 12h7.5m-7.5 5.25h7.5m3-13.5H3.75a1.5 1.5 0 0 0-1.5 1.5v13.5a1.5 1.5 0 0 0 1.5 1.5h16.5a1.5 1.5 0 0 0 1.5-1.5V4.5a1.5 1.5 0 0 0-1.5-1.5Z" /></svg>
+            <p class="mt-4 font-semibold">Select or create a campaign to view influencers.</p>
+          </div>
+        }
+      } @else {
+        <!-- MANAGE VIEW -->
+        <div class="p-4">
+          <input type="file" #fileInput class="hidden" (change)="onFileSelected($event)" accept=".pdf,.doc,.docx">
+          <table class="w-full text-sm text-left text-slate-500">
+            <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+              <tr>
+                <th scope="col" class="px-6 py-3 min-w-[200px]">Influencer</th>
+                <th scope="col" class="px-6 py-3">Followers</th>
+                <th scope="col" class="px-6 py-3">Location</th>
+                <th scope="col" class="px-6 py-3">Channels</th>
+                <th scope="col" class="px-6 py-3">Campaign</th>
+                <th scope="col" class="px-6 py-3">Budget</th>
+                <th scope="col" class="px-6 py-3 min-w-[150px]">Agreement</th>
+                <th scope="col" class="px-6 py-3 min-w-[150px]">Deliverables</th>
+                <th scope="col" class="px-3 py-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for(influencer of manageViewInfluencers(); track influencer.id + influencer.campaignId) {
+                @let budget = influencer.budget;
+                <tr class="bg-white hover:bg-slate-50 border-b">
+                  <td class="px-6 py-4 font-medium text-slate-900">
+                      <div class="flex items-center gap-3">
+                        <img class="w-10 h-10 rounded-full object-cover" [src]="influencer.avatarUrl" [alt]="influencer.name">
+                        <div>
+                          <a [routerLink]="['/influencer', influencer.id]" class="font-bold hover:underline">{{ influencer.name }}</a>
+                          <p class="text-xs text-slate-500">@{{ influencer.handle }}</p>
+                        </div>
+                      </div>
+                  </td>
+                  <td class="px-6 py-4">{{ influencer.followers.toLocaleString() }}</td>
+                  <td class="px-6 py-4">{{ influencer.country }}</td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                        @for(p of influencer.platforms; track p.name) {
+                          <div [innerHTML]="platformLogos[p.name] | safeHtml" class="w-5 h-5"></div>
+                        }
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">{{ influencer.campaignName }}</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <button (click)="openBudgetModal(influencer)" class="w-28 text-left p-1 rounded-md text-sm hover:bg-slate-100 text-slate-600">
+                        @if (budget) {
+                            <span class="font-semibold text-slate-800">{{ budget.value.toLocaleString() }} {{ budget.currency }}</span>
+                        } @else {
+                            <span class="text-slate-400">Add budget</span>
+                        }
+                    </button>
+                  </td>
+                  <td class="px-6 py-4">
+                    @if (influencer.documents && influencer.documents.length > 0) {
+                      <div class="flex items-center justify-between gap-2">
+                        <button (click)="triggerFileUpload(influencer)" title="Replace agreement" class="text-[#003fb5] hover:underline font-medium text-sm flex items-center gap-2 truncate">
+                            <app-icon featureName="Paperclip" size="14"></app-icon>
+                            <span class="truncate">{{ influencer.documents[0].name }}</span>
+                        </button>
+                        <button (click)="removeAgreement(influencer)" title="Remove agreement" class="p-1 text-slate-400 hover:text-red-500 rounded-full flex-shrink-0">
+                            <app-icon featureName="Close" size="14"></app-icon>
+                        </button>
+                      </div>
+                    } @else {
+                        <button (click)="triggerFileUpload(influencer)" class="w-full text-left p-1 rounded-md text-sm text-slate-400 hover:bg-slate-100">
+                            Upload Contract
+                        </button>
+                    }
+                  </td>
+                  <td class="px-6 py-4">
+                    <button (click)="openDeliverablesModal(influencer)" class="w-full text-left p-1 rounded-md text-sm hover:bg-slate-100 text-slate-600 flex items-center justify-between group">
+                      @if (influencer.deliverables && influencer.deliverables.length > 0) {
+                          <div>
+                          @if (influencer.deliverables.length === 1) {
+                              <a [href]="influencer.deliverables[0]" target="_blank" class="text-[#003fb5] hover:underline font-medium text-sm truncate max-w-[150px] block" (click)="$event.stopPropagation()">
+                                  {{ influencer.deliverables[0] }}
+                              </a>
+                          } @else {
+                              <span class="px-2 py-1 bg-slate-200 text-slate-700 font-medium rounded-full">{{ influencer.deliverables.length }} Links</span>
+                          }
+                          </div>
+                      } @else {
+                          <span class="text-slate-400">Add URL</span>
+                      }
+                      <app-icon featureName="Compose" size="14" class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"></app-icon>
+                    </button>
+                  </td>
+                  <td class="px-3 py-4 text-center">
+                    <button (click)="showRemoveInfluencerFromManageModal.set(influencer)" title="Remove from campaign" class="p-2 text-slate-400 hover:bg-red-100 hover:text-red-600 rounded-full">
+                        <app-icon featureName="Delete" size="16"></app-icon>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Campaign Delete Confirmation Modal -->
+@if (showDeleteModal(); as campaignToDelete) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="showDeleteModal.set(null)"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 p-6 animate-fade-in rounded-lg shadow-xl">
+    <h3 class="text-lg font-bold text-slate-900">Delete Campaign</h3>
+    <p class="mt-2 text-sm text-slate-500">Are you sure you want to delete the campaign "{{ campaignToDelete.name }}"? This action cannot be undone.</p>
+    <div class="mt-6 flex justify-end gap-3">
+      <button type="button" (click)="showDeleteModal.set(null)" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Cancel</button>
+      <button type="button" (click)="confirmDeleteCampaign()" class="primary-btn px-4 py-2 bg-red-600 text-sm font-medium text-white hover:bg-red-700 transition-all">Delete</button>
+    </div>
+  </div>
+}
+
+<!-- Column Delete Confirmation Modal -->
+@if (showDeleteColumnModal(); as columnToDelete) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="showDeleteColumnModal.set(null)"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 p-6 animate-fade-in rounded-lg shadow-xl">
+    <h3 class="text-lg font-bold text-slate-900">Delete Column</h3>
+    <p class="mt-2 text-sm text-slate-500">Are you sure you want to delete the column "{{ columnToDelete }}"? All influencers in this column will be removed from the campaign. This action cannot be undone.</p>
+    <div class="mt-6 flex justify-end gap-3">
+      <button type="button" (click)="showDeleteColumnModal.set(null)" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Cancel</button>
+      <button type="button" (click)="confirmDeleteColumn()" class="primary-btn px-4 py-2 bg-red-600 text-sm font-medium text-white hover:bg-red-700 transition-all">Delete</button>
+    </div>
+  </div>
+}
+
+<!-- Remove Influencer Confirmation Modal -->
+@if (showRemoveInfluencerModal(); as influencerToRemove) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="showRemoveInfluencerModal.set(null)"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 p-6 animate-fade-in rounded-lg shadow-xl">
+    <h3 class="text-lg font-bold text-slate-900">Remove Influencer</h3>
+    <p class="mt-2 text-sm text-slate-500">Are you sure you want to remove "{{ influencerToRemove.name }}" from this campaign?</p>
+    <div class="mt-6 flex justify-end gap-3">
+      <button type="button" (click)="showRemoveInfluencerModal.set(null)" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Cancel</button>
+      <button type="button" (click)="confirmRemoveInfluencer()" class="primary-btn px-4 py-2 bg-red-600 text-sm font-medium text-white hover:bg-red-700 transition-all">Remove</button>
+    </div>
+  </div>
+}
+
+<!-- Remove Influencer from Manage View Confirmation Modal -->
+@if (showRemoveInfluencerFromManageModal(); as influencerToRemove) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="showRemoveInfluencerFromManageModal.set(null)"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 p-6 animate-fade-in rounded-lg shadow-xl">
+    <h3 class="text-lg font-bold text-slate-900">Remove Influencer</h3>
+    <p class="mt-2 text-sm text-slate-500">Are you sure you want to remove "{{ influencerToRemove.name }}" from the "{{ influencerToRemove.campaignName }}" campaign? This will remove them from all views for this campaign.</p>
+    <div class="mt-6 flex justify-end gap-3">
+      <button type="button" (click)="showRemoveInfluencerFromManageModal.set(null)" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Cancel</button>
+      <button type="button" (click)="confirmRemoveInfluencerFromManage()" class="primary-btn px-4 py-2 bg-red-600 text-sm font-medium text-white hover:bg-red-700 transition-all">Remove</button>
+    </div>
+  </div>
+}
+
+<!-- Add Influencer Modal -->
+@if (showAddInfluencerModal(); as status) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="showAddInfluencerModal.set(null)"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-lg z-50 animate-fade-in rounded-lg shadow-xl flex flex-col h-[60vh]">
+    <div class="p-4 border-b border-slate-200">
+        <h3 class="text-lg font-bold text-slate-900">Add Influencer to "{{status}}"</h3>
+        <input [(ngModel)]="addInfluencerSearchTerm" type="text" placeholder="Search by name or handle..." class="mt-2 w-full p-2 border border-slate-200 rounded-md focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+    </div>
+    <div class="flex-grow overflow-y-auto">
+        @if (!addInfluencerSearchTerm() && suggestedInfluencers().length > 0) {
+           <div class="p-3">
+             <h4 class="text-xs font-semibold text-slate-400 uppercase">Suggestions</h4>
+             <div class="mt-2 space-y-2">
+                @for(inf of suggestedInfluencers(); track inf.id) {
+                    <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-md">
+                        <div class="flex items-center gap-3">
+                            <img [src]="inf.avatarUrl" [alt]="inf.name" class="w-10 h-10 rounded-full object-cover">
+                            <div>
+                                <p class="font-bold text-slate-800">{{inf.name}}</p>
+                                <p class="text-sm text-slate-500">@{{inf.handle}}</p>
+                            </div>
+                        </div>
+                        @if (addedInfluencerIdsInModal().has(inf.id)) {
+                          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-md">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
+                            Added
+                          </span>
+                        } @else {
+                          <button (click)="addInfluencerToColumn(inf)" class="primary-btn px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200">Add</button>
+                        }
+                    </div>
+                }
+             </div>
+           </div>
+        }
+        @if(addInfluencerResults().length > 0) {
+            <ul>
+                @for(inf of addInfluencerResults(); track inf.id) {
+                    <li class="flex items-center justify-between p-3 hover:bg-slate-50">
+                        <div class="flex items-center gap-3">
+                            <img [src]="inf.avatarUrl" [alt]="inf.name" class="w-10 h-10 rounded-full object-cover">
+                            <div>
+                                <p class="font-bold text-slate-800">{{inf.name}}</p>
+                                <p class="text-sm text-slate-500">@{{inf.handle}}</p>
+                            </div>
+                        </div>
+                        @if (addedInfluencerIdsInModal().has(inf.id)) {
+                          <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-md">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
+                            Added
+                          </span>
+                        } @else {
+                          <button (click)="addInfluencerToColumn(inf)" class="primary-btn px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200">Add</button>
+                        }
+                    </li>
+                }
+            </ul>
+        } @else if (addInfluencerSearchTerm()) {
+            <p class="text-center p-6 text-slate-500">No influencers found matching your search who are not already in this campaign.</p>
+        } @else if (suggestedInfluencers().length === 0) {
+            <p class="text-center p-6 text-slate-500">Start typing to search for an influencer.</p>
+        }
+    </div>
+    <div class="bg-slate-50 p-3 flex justify-end rounded-b-lg">
+      <button type="button" (click)="showAddInfluencerModal.set(null)" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Close</button>
+    </div>
+  </div>
+}
+
+<!-- Budget Edit Modal -->
+@if (showBudgetModal(); as influencer) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="showBudgetModal.set(null)"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 p-6 animate-fade-in rounded-lg shadow-xl">
+    <h3 class="text-lg font-bold text-slate-900">Edit Budget for {{ influencer.name }}</h3>
+    <div class="mt-4 grid grid-cols-3 gap-4 items-end">
+      <div class="col-span-2">
+        <label for="budget-amount" class="block text-sm font-medium text-slate-700">Amount</label>
+        <input id="budget-amount" type="number" [(ngModel)]="editingBudget().value" placeholder="e.g., 5000" class="mt-1 w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label for="budget-currency" class="block text-sm font-medium text-slate-700">Currency</label>
+        <select id="budget-currency" [(ngModel)]="editingBudget().currency" class="mt-1 w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option>VND</option>
+          <option>USD</option>
+          <option>EUR</option>
+          <option>GBP</option>
+        </select>
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end gap-3">
+      <button type="button" (click)="showBudgetModal.set(null)" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Cancel</button>
+      <button type="button" (click)="saveBudget()" class="primary-btn px-4 py-2 bg-[#003fb5] text-sm font-medium text-white hover:bg-blue-700 transition-all">Save Budget</button>
+    </div>
+  </div>
+}
+
+<!-- Deliverables Edit Modal -->
+@if (showDeliverablesModal(); as influencer) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="showDeliverablesModal.set(null)"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-lg z-50 animate-fade-in rounded-lg shadow-xl flex flex-col h-[60vh]">
+    <div class="p-4 border-b border-slate-200">
+        <h3 class="text-lg font-bold text-slate-900">Edit Deliverables for {{ influencer.name }}</h3>
+    </div>
+    <div class="p-4 flex-grow overflow-y-auto space-y-3">
+        <div class="flex items-center gap-2">
+            <input [(ngModel)]="newDeliverableUrl" (keydown.enter)="addDeliverable()" type="text" placeholder="https://example.com/..." class="flex-grow p-2 border border-slate-200 rounded-md focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+            <button (click)="addDeliverable()" class="primary-btn px-4 py-2 bg-blue-100 text-blue-800 text-sm font-semibold hover:bg-blue-200 transition-colors">Add</button>
+        </div>
+        <div class="space-y-2">
+            @for(url of editingDeliverables(); track url; let i = $index) {
+                <div class="flex items-center justify-between p-2 bg-slate-50 rounded-md">
+                    <a [href]="url" target="_blank" class="text-sm text-[#003fb5] hover:underline truncate">{{ url }}</a>
+                    <button (click)="removeDeliverable(i)" class="p-1 text-red-500 hover:bg-red-100 rounded-full">
+                        <app-icon featureName="Delete" size="16"></app-icon>
+                    </button>
+                </div>
+            }
+            @if(editingDeliverables().length === 0) {
+                <p class="text-center text-sm text-slate-400 py-4">No URLs added yet.</p>
+            }
+        </div>
+    </div>
+    <div class="bg-slate-50 p-3 flex justify-end gap-3 rounded-b-lg">
+      <button type="button" (click)="showDeliverablesModal.set(null)" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Cancel</button>
+      <button type="button" (click)="saveDeliverables()" class="primary-btn px-4 py-2 bg-[#003fb5] text-sm font-medium text-white hover:bg-blue-700 transition-all">Save Deliverables</button>
+    </div>
+  </div>
+}

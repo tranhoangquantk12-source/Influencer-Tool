@@ -1,0 +1,312 @@
+<div class="space-y-6">
+  <header class="space-y-2">
+    <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#003fb5] to-blue-500">Influencer Discovery</h1>
+    <p class="text-slate-500">Find the perfect influencers for your brand using our powerful AI-driven search and filtering tools.</p>
+  </header>
+
+  <!-- Unified Container -->
+  <div class="bg-white rounded-lg shadow-lg">
+    <!-- Search Header & Filters -->
+    <div class="p-6 space-y-4">
+      <!-- Row 1: Main Search -->
+      <div class="flex items-center gap-2 max-w-5xl mx-auto">
+          <!-- Main Search Input -->
+          <input [(ngModel)]="searchTerm" (keydown.enter)="performSearch()" type="text" placeholder="Search by name, username, or category..." 
+                 class="flex-grow w-full h-[42px] bg-white p-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20 rounded-md border border-slate-200 min-w-[200px]">
+          
+          <!-- Search Button -->
+          <button (click)="performSearch()" class="primary-btn flex-shrink-0 h-[42px] px-6 bg-[#003fb5] text-white hover:bg-blue-700 transition-colors font-semibold">
+              Search
+          </button>
+      </div>
+
+      <!-- Row 2: Secondary Filters -->
+      <div class="flex items-center justify-center flex-wrap gap-4 pt-3 text-sm">
+          <!-- Platforms Filter -->
+          <div class="relative filter-dropdown-container">
+              <button (click)="toggleDropdown('platform')" class="px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5"
+                      [class]="isPlatformFilterActive() ? 'text-[#003fb5]' : 'text-slate-500 hover:text-[#003fb5]'">
+                  <span class="hover:underline">Platforms</span>
+                  @if (isPlatformFilterActive()) {
+                      <span class="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-[#003fb5]/20 text-blue-800">{{ selectedPlatforms().size }}</span>
+                  }
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg>
+              </button>
+              @if (openDropdown() === 'platform') {
+                  <div class="absolute top-full left-0 mt-2 p-2 w-64 bg-white z-10 rounded-md shadow-lg space-y-1 animate-fade-in ring-1 ring-black ring-opacity-5">
+                      @for(p of allPlatforms; track p) {
+                          <label class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-md cursor-pointer">
+                              <input type="checkbox" [checked]="selectedPlatforms().has(p)" (change)="togglePlatform(p)" class="rounded-full border-gray-300 text-[#003fb5] shadow-sm focus:border-[#003fb5] focus:ring focus:ring-offset-0 focus:ring-blue-200 focus:ring-opacity-50">
+                              <div [innerHTML]="platformLogos[p] | safeHtml" class="w-5 h-5"></div>
+                              <span>{{ p }}</span>
+                          </label>
+                      }
+                  </div>
+              }
+          </div>
+          
+          <!-- Influencer Size Filter -->
+          <div class="relative filter-dropdown-container">
+              <button (click)="toggleDropdown('size')" class="px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5"
+                      [class]="isSizeFilterActive() ? 'text-[#003fb5]' : 'text-slate-500 hover:text-[#003fb5]'">
+                  <span class="hover:underline">{{ sizeFilterLabel() }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg>
+              </button>
+              @if (openDropdown() === 'size') {
+                   <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-4 w-72 bg-white z-10 rounded-md shadow-lg animate-fade-in ring-1 ring-black ring-opacity-5">
+                      <div class="grid grid-cols-3 gap-2">
+                          @for(tier of followerTiers; track tier.id) {
+                              <button (click)="selectSizeTier(tier)" class="px-2 py-1 text-xs font-semibold transition-colors rounded-md"
+                                      [class]="minFollowers() === tier.min && maxFollowers() === tier.max ? 'bg-[#003fb5] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+                                  {{ tier.label }}
+                              </button>
+                          }
+                      </div>
+                      <div class="flex items-center gap-2 mt-4">
+                          <input type="number" [(ngModel)]="minFollowers" placeholder="Min" class="w-full p-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+                          <span class="text-slate-400">-</span>
+                          <input type="number" [(ngModel)]="maxFollowers" placeholder="Max" class="w-full p-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+                      </div>
+                      <button (click)="openDropdown.set(null)" class="w-full mt-2 px-3 py-1.5 bg-[#003fb5] text-white text-xs font-semibold shadow-sm hover:bg-blue-700 transition-all rounded-md">
+                          Apply
+                      </button>
+                   </div>
+              }
+          </div>
+          
+          <!-- Average Views Filter -->
+          <div class="relative filter-dropdown-container">
+              <button (click)="toggleDropdown('views')" class="px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5"
+                      [class]="isViewsFilterActive() ? 'text-[#003fb5]' : 'text-slate-500 hover:text-[#003fb5]'">
+                  <span class="hover:underline">{{ viewsFilterLabel() }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg>
+              </button>
+               @if (openDropdown() === 'views') {
+                   <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-4 w-72 bg-white z-10 rounded-md shadow-lg animate-fade-in ring-1 ring-black ring-opacity-5">
+                      <div class="grid grid-cols-3 gap-2">
+                           @for(tier of viewcountTiers; track tier.id) {
+                              <button (click)="selectViewTier(tier)" class="px-2 py-1 text-xs font-semibold transition-colors rounded-md"
+                                      [class]="minViewcount() === tier.min ? 'bg-[#003fb5] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+                                  {{ tier.label }}
+                              </button>
+                          }
+                      </div>
+                      <div class="flex items-center gap-2 mt-4">
+                          <input type="number" [(ngModel)]="minViewcount" placeholder="Min" class="w-full p-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+                          <span class="text-slate-400">-</span>
+                          <input type="number" [(ngModel)]="maxViewcount" placeholder="Max" class="w-full p-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+                      </div>
+                       <button (click)="openDropdown.set(null)" class="w-full mt-2 px-3 py-1.5 bg-[#003fb5] text-white text-xs font-semibold shadow-sm hover:bg-blue-700 transition-all rounded-md">
+                          Apply
+                      </button>
+                   </div>
+              }
+          </div>
+
+          <!-- Engagement Rate Filter -->
+          <div class="relative filter-dropdown-container">
+              <button (click)="toggleDropdown('engagement')" class="px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5"
+                      [class]="isEngagementFilterActive() ? 'text-[#003fb5]' : 'text-slate-500 hover:text-[#003fb5]'">
+                  <span class="hover:underline">{{ engagementFilterLabel() }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg>
+              </button>
+               @if (openDropdown() === 'engagement') {
+                   <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-4 w-72 bg-white z-10 rounded-md shadow-lg animate-fade-in ring-1 ring-black ring-opacity-5">
+                      <div class="grid grid-cols-3 gap-2">
+                           @for(tier of engagementTiers; track tier.id) {
+                              <button (click)="selectEngagementTier(tier)" class="px-2 py-1 text-xs font-semibold transition-colors rounded-md"
+                                      [class]="minEngagement() === tier.min ? 'bg-[#003fb5] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'">
+                                  {{ tier.label }}
+                              </button>
+                          }
+                      </div>
+                   </div>
+              }
+          </div>
+
+          <!-- Location Filter -->
+          <div class="relative filter-dropdown-container">
+              <button (click)="toggleDropdown('location')" class="px-3 py-1.5 text-sm font-medium transition-all flex items-center gap-1.5"
+                      [class]="isLocationFilterActive() ? 'text-[#003fb5]' : 'text-slate-500 hover:text-[#003fb5]'">
+                  <span class="hover:underline">{{ country() || 'Influencer location' }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg>
+              </button>
+               @if (openDropdown() === 'location') {
+                   <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-2 w-72 bg-white z-10 rounded-md shadow-lg flex flex-col animate-fade-in ring-1 ring-black ring-opacity-5">
+                      <input [(ngModel)]="locationSearchTerm" type="text" placeholder="Search countries..." class="p-2 mb-1 text-sm border-b border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#003fb5]/20 focus:border-[#003fb5]">
+                      <div class="max-h-60 overflow-y-auto">
+                          @for(c of filteredCountries(); track c) {
+                              <button (click)="selectCountry(c)" class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-100 rounded-md" [class.bg-blue-100]="country() === c">
+                                  {{ c }}
+                              </button>
+                          }
+                      </div>
+                   </div>
+              }
+          </div>
+
+          <button (click)="resetFilters()" class="font-medium text-slate-500 hover:text-slate-800 transition-colors">Reset Filters</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div>
+      @if(selectedInfluencerIds().size > 0) {
+          <div class="bg-blue-50 p-3 flex justify-between items-center">
+              <p class="text-sm font-medium text-blue-800">{{ selectedInfluencerIds().size }} influencer(s) selected</p>
+              <div class="relative">
+                  <button (click)="openAddToCampaignModal(null, true)" class="primary-btn inline-flex items-center px-3 py-1.5 bg-[#003fb5] text-white text-xs font-semibold shadow-sm hover:bg-blue-700 transition-all duration-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-1.5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>
+                      Add to Campaign
+                  </button>
+              </div>
+          </div>
+      }
+
+      @if (status() === 'loading') {
+        <div class="p-6 text-center text-slate-500">Loading...</div>
+      } @else if (results().length > 0) {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-slate-500">
+            <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+              <tr>
+                <th scope="col" class="p-4 w-12">
+                  <input type="checkbox" [checked]="areAllSelected()" (change)="toggleAllSelection()" class="h-4 w-4 rounded-full border-gray-300 text-[#003fb5] focus:ring-[#003fb5]">
+                </th>
+                <th scope="col" class="px-6 py-3 min-w-[250px]">Influencer</th>
+                <th scope="col" class="px-6 py-3">Platforms</th>
+                <th scope="col" class="px-6 py-3">Followers</th>
+                <th scope="col" class="px-6 py-3">Categories</th>
+                <th scope="col" class="px-6 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (influencer of results(); track influencer.id; let i = $index) {
+                <tr class="bg-white hover:bg-slate-50 group" (mouseenter)="hoveredRowId.set(influencer.id)" (mouseleave)="hoveredRowId.set(null)">
+                  <td class="p-4">
+                      <div class="h-4 w-4 flex items-center justify-center">
+                      @if (hoveredRowId() === influencer.id || selectedInfluencerIds().has(influencer.id)) {
+                          <input type="checkbox" [checked]="selectedInfluencerIds().has(influencer.id)" (change)="toggleSelection(influencer.id)" class="h-4 w-4 rounded-full border-gray-300 text-[#003fb5] focus:ring-[#003fb5]">
+                      } @else {
+                          <span class="text-slate-400 font-medium">{{ i + 1 }}</span>
+                      }
+                      </div>
+                  </td>
+                  <th scope="row" class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                      <img class="w-10 h-10 rounded-full object-cover" [src]="influencer.avatarUrl" [alt]="influencer.name">
+                      <div class="flex flex-col">
+                        <a [routerLink]="['/influencer', influencer.id]" class="font-bold hover:underline">{{ influencer.name }}</a>
+                        <a [routerLink]="['/influencer', influencer.id]" class="text-[#003fb5] hover:underline text-xs">@{{ influencer.handle }}</a>
+                      </div>
+                    </div>
+                  </th>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-4">
+                      @for(platform of influencer.platforms; track platform.name) {
+                        <a [href]="platform.url" target="_blank" [title]="'Visit ' + platform.name + ' Profile'" class="text-slate-500 hover:text-[#003fb5] transition-colors">
+                           <div [innerHTML]="platformLogos[platform.name] | safeHtml" class="w-5 h-5"></div>
+                        </a>
+                      }
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">{{ formatFollowers(influencer.followers) }}</td>
+                  <td class="px-6 py-4">
+                     <div class="flex flex-wrap gap-2">
+                      @for(category of influencer.categories; track category) {
+                          <span class="inline-flex items-center gap-x-1.5 bg-slate-100/80 px-2 py-1 text-xs font-medium text-slate-700 rounded-full hover:bg-slate-200 transition-colors">
+                              {{category}}
+                          </span>
+                      }
+                     </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                    @if (isInfluencerInCampaign(influencer.id)) {
+                       <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        In Campaign
+                      </span>
+                    } @else {
+                      <button (click)="openAddToCampaignModal(influencer, false)" class="primary-btn px-2 py-1 text-xs border border-slate-200 text-[#003fb5] hover:bg-[#003fb5] hover:text-white transition-all duration-200">Add to campaign</button>
+                      <a [routerLink]="['/conversations']" [queryParams]="{ recipientEmail: influencer.email, recipientName: influencer.name }" class="primary-btn px-2 py-1 text-xs border border-slate-200 text-[#003fb5] hover:bg-[#003fb5] hover:text-white transition-all duration-200">Send email</a>
+                    }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else if (status() === 'success') {
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-slate-900">No results found</h3>
+          <p class="mt-1 text-sm text-slate-500">Try adjusting your search filters.</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Add to Campaign Modal -->
+  @if (showAddToCampaignModal()) {
+    <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="closeModal()"></div>
+    <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 animate-fade-in rounded-lg shadow-xl">
+      <div class="p-6">
+        <h3 class="text-lg font-bold text-slate-900">
+            @if(isBulkAdd()) {
+                Add {{ selectedInfluencerIds().size }} influencer(s) to a campaign
+            } @else {
+                Add {{ influencerForModal()?.name }} to a campaign
+            }
+        </h3>
+        <div class="mt-4 space-y-1">
+          <label for="campaign-select" class="block text-sm font-medium text-slate-700">Select a campaign</label>
+          <div class="relative custom-dropdown-container">
+            <button (click)="toggleCampaignModalDropdown()"
+                    class="w-full h-[42px] bg-white border border-slate-200 rounded-md flex items-center justify-between px-3 py-2 text-left focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+              <span class="text-sm">{{ selectedCampaignName() }}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[#003fb5] transition-transform" [class.rotate-180]="isCampaignModalDropdownOpen()" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 8l4 4 4-4"/></svg>
+            </button>
+            @if (isCampaignModalDropdownOpen()) {
+              <div class="absolute top-full left-0 mt-1 w-full bg-white rounded-md shadow-lg z-10 py-1 animate-fade-in ring-1 ring-black ring-opacity-5">
+                @for(campaign of campaigns(); track campaign.id) {
+                  <button (click)="selectCampaignForModal(campaign.id)"
+                          class="w-full text-left px-3 py-2 text-sm"
+                          [class]="selectedCampaignId() === campaign.id ? 'bg-blue-100 text-blue-800' : 'text-slate-700 hover:bg-[#003fb5]/10'">
+                    {{ campaign.name }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="bg-slate-50 px-6 py-3 flex justify-end gap-3 rounded-b-lg">
+        <button type="button" (click)="closeModal()" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Cancel</button>
+        <button type="button" (click)="addToCampaign()" class="px-4 py-2 bg-[#003fb5] text-sm font-medium text-white primary-btn hover:bg-blue-700 transition-all">Add to Campaign</button>
+      </div>
+    </div>
+  }
+
+  <!-- Success Modal -->
+  @if (showSuccessModal(); as successInfo) {
+    <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="closeModal()"></div>
+    <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 p-6 animate-fade-in rounded-lg shadow-xl text-center">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+      </div>
+      <h3 class="mt-4 text-lg font-bold text-slate-900">Successfully Added!</h3>
+      <p class="mt-2 text-sm text-slate-500">
+        The selected influencer(s) have been added to the "<strong>{{ successInfo.campaignName }}</strong>" campaign.
+      </p>
+      <div class="mt-6 flex justify-center gap-3">
+        <button type="button" (click)="closeModal()" class="primary-btn px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all">Done</button>
+        <button type="button" (click)="goToCampaign(successInfo.campaignId)" class="primary-btn px-4 py-2 bg-[#003fb5] text-sm font-medium text-white hover:bg-blue-700 transition-all">
+          See on Campaigns
+        </button>
+      </div>
+    </div>
+  }
+</div>

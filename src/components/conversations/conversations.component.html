@@ -1,0 +1,308 @@
+<div class="space-y-4">
+  <header class="flex justify-between items-start">
+    <div>
+      <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#003fb5] to-blue-500">Conversations</h1>
+      <p class="mt-1 text-slate-500">Manage all your email communications with influencers in one place.</p>
+    </div>
+    <button (click)="startNewConversation()" class="primary-btn inline-flex items-center gap-2 px-4 py-2 bg-[#003fb5] text-white font-semibold shadow-sm hover:bg-blue-700">
+      <app-icon featureName="Compose" size="20" color="currentColor"></app-icon>
+      Start New Conversation
+    </button>
+  </header>
+
+  <!-- Filter Chips -->
+  <div class="flex items-center gap-3">
+    <!-- Campaign Filter -->
+    <div class="relative filter-chip-container">
+      <button (click)="toggleFilterDropdown('campaign')" class="flex items-center gap-2 text-sm font-medium hover:bg-slate-200 px-3 py-1.5 border border-slate-200 rounded-md transition-colors" [class]="filterByCampaign() ? 'bg-[#003fb5]/20 text-blue-800' : 'bg-white text-slate-700'">
+        <span class="truncate max-w-[120px]">{{ getFilterLabel('campaign') }}</span>
+        <app-icon featureName="ChevronDown" size="16" color="currentColor" class="text-slate-500 transition-transform" [class.rotate-180]="openFilterDropdown() === 'campaign'"></app-icon>
+      </button>
+      @if(openFilterDropdown() === 'campaign') {
+        <div class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-lg z-10 py-1 animate-fade-in ring-1 ring-black ring-opacity-5">
+          <button (click)="selectFilter('campaign', '')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">All Campaigns</button>
+          @for(name of uniqueCampaignNames(); track name) {
+            <button (click)="selectFilter('campaign', name)" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">{{name}}</button>
+          }
+        </div>
+      }
+    </div>
+  
+    <!-- Contract Status Filter -->
+    <div class="relative filter-chip-container">
+      <button (click)="toggleFilterDropdown('contract')" class="flex items-center gap-2 text-sm font-medium hover:bg-slate-200 px-3 py-1.5 border border-slate-200 rounded-md transition-colors" [class]="filterByContractStatus() ? 'bg-[#003fb5]/20 text-blue-800' : 'bg-white text-slate-700'">
+        <span>{{ getFilterLabel('contract') }}</span>
+        <app-icon featureName="ChevronDown" size="16" color="currentColor" class="text-slate-500 transition-transform" [class.rotate-180]="openFilterDropdown() === 'contract'"></app-icon>
+      </button>
+      @if(openFilterDropdown() === 'contract') {
+        <div class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1 animate-fade-in ring-1 ring-black ring-opacity-5">
+          <button (click)="selectFilter('contract', '')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">All</button>
+          @for(status of contractStatuses; track status) {
+            <button (click)="selectFilter('contract', status)" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">{{status}}</button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow-lg h-[70vh] flex overflow-hidden">
+    @if (!selectedConversationId()) {
+      <!-- List Only View -->
+      <div class="w-full flex-shrink-0 flex flex-col">
+        <div class="p-4">
+          <div class="relative">
+              <input [(ngModel)]="conversationSearchTerm" type="text" placeholder="Search conversations..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md h-[42px] focus:border-[#003fb5] focus:outline-none focus:ring-1 focus:ring-[#003fb5]/20 transition-colors">
+              <div class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400">
+                <app-icon featureName="InfluencerDiscovery" size="16" color="currentColor"></app-icon>
+              </div>
+          </div>
+        </div>
+        <div class="overflow-y-auto">
+          @if (conversations().length > 0) {
+            <ul>
+              @for (conv of conversations(); track conv.id) {
+                <li (click)="selectConversation(conv.id)" 
+                    class="p-4 cursor-pointer hover:bg-slate-50"
+                    [class]="conv.unread ? 'bg-blue-50' : 'bg-white'">
+                  <div class="flex items-start gap-4">
+                    <div class="flex-grow overflow-hidden flex items-center gap-4">
+                      <p class="font-semibold text-slate-900 w-48 truncate">{{ conv.influencerName }}</p>
+                      <p class="text-sm text-slate-700 truncate"><span class="font-medium">{{ conv.subject }}</span> - <span class="text-slate-500">{{conv.lastMessage}}</span></p>
+                    </div>
+                    <div class="flex-shrink-0 flex items-center gap-3">
+                      <div class="flex flex-wrap gap-2 justify-end max-w-xs">
+                          @if(conv.campaignName) { <span class="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">{{conv.campaignName}}</span> }
+                          @if(conv.progressStatus) { <span class="px-2 py-0.5 text-xs font-medium rounded-full" [class]="getStatusColor(conv.progressStatus)">{{conv.progressStatus}}</span> }
+                      </div>
+                      <p class="text-xs text-slate-400 font-medium w-20 text-right">{{ conv.timestamp | date:'shortTime' }}</p>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="p-4 text-sm text-slate-500">No conversations match the current filters.</p>
+          }
+        </div>
+      </div>
+    } @else {
+      <!-- Master-Detail View -->
+      <!-- Left Panel: Conversation List -->
+      <div class="w-full md:w-1/3 lg:w-1/4 flex-shrink-0 flex flex-col">
+        <div class="p-4">
+          <div class="relative">
+              <input [(ngModel)]="conversationSearchTerm" type="text" placeholder="Search conversations..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md h-[42px] focus:border-[#003fb5] focus:outline-none focus:ring-1 focus:ring-[#003fb5]/20 transition-colors">
+              <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <app-icon featureName="InfluencerDiscovery" size="16" color="currentColor"></app-icon>
+              </div>
+          </div>
+        </div>
+        <div class="overflow-y-auto">
+          @if (conversations().length > 0) {
+            <ul (dragover)="$event.preventDefault()">
+              @for (conv of conversations(); track conv.id; let i = $index) {
+                <li (click)="selectConversation(conv.id)" 
+                    draggable="true" 
+                    (dragstart)="onDragStart(i)" 
+                    (drop)="onDrop(i)"
+                    class="p-4 cursor-pointer draggable-item"
+                    [class.dragging]="draggedConversationIndex() === i"
+                    [class]="selectedConversationId() === conv.id ? 'bg-blue-50' : 'hover:bg-slate-50'">
+                  <div class="flex items-start gap-4">
+                    <div class="relative flex-shrink-0">
+                        <img [src]="conv.influencerAvatar" [alt]="conv.influencerName" class="w-10 h-10 rounded-full">
+                        @if(conv.isOnline) {
+                          <span class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white"></span>
+                        }
+                    </div>
+                    <div class="flex-grow overflow-hidden">
+                      <div class="flex justify-between items-baseline">
+                        <p class="font-semibold text-slate-900 truncate">{{ conv.influencerName }}</p>
+                        <p class="text-xs text-slate-400 flex-shrink-0">{{ conv.timestamp | date:'shortTime' }}</p>
+                      </div>
+                      <p class="text-sm text-slate-700 font-medium truncate">{{ conv.subject }}</p>
+                      <p class="text-sm text-slate-500 truncate">{{ conv.lastMessage }}</p>
+                    </div>
+                    @if(conv.unread) {
+                      <div class="w-2.5 h-2.5 bg-[#003fb5] rounded-full mt-1.5 flex-shrink-0"></div>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="p-4 text-sm text-slate-500">No conversations match the current filters.</p>
+          }
+        </div>
+      </div>
+
+      <!-- Right Panel Container -->
+      <div class="hidden md:flex flex-1">
+        @if (selectedConversation(); as conv) {
+          @let influencer = selectedInfluencerDetails();
+          <!-- Message View -->
+          <div class="flex flex-col flex-1">
+            <!-- Header -->
+            <div class="p-4 flex justify-between items-center flex-shrink-0 bg-white">
+                @if (influencer) {
+                  <div>
+                    <h3 class="font-bold text-slate-900">{{ influencer.name }}</h3>
+                    <div class="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                      <span class="font-medium">{{ formatFollowers(influencer.followers) }} followers</span>
+                      <div class="flex items-center gap-2">
+                        @for(platform of influencer.platforms; track platform.name) {
+                          <div [innerHTML]="platformLogos[platform.name] | safeHtml" class="w-4 h-4"></div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <a [routerLink]="['/influencer', influencer.id]" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-all">View Profile</a>
+                    <button (click)="openAddToCampaignModal()" class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border-transparent rounded-md hover:bg-blue-200 transition-all">Add to Campaign</button>
+                  </div>
+                } @else {
+                  <div>
+                     <h3 class="font-bold text-slate-900">{{ conv.subject }}</h3>
+                     <p class="text-sm text-slate-500">With: {{ conv.influencerName }}</p>
+                  </div>
+                }
+            </div>
+
+            <!-- Messages -->
+            <div #messageContainer class="flex-1 p-6 space-y-4 overflow-y-auto bg-slate-100">
+              @for(message of conv.messages; track message.id) {
+                @if (message.sender === 'user') {
+                    <div class="flex justify-end">
+                        <div class="max-w-lg p-3 bg-[#003fb5] text-white rounded-lg shadow">
+                            <p class="text-sm">{{ message.content }}</p>
+                            <p class="text-xs mt-1 text-blue-200 text-right">{{ formatTimestamp(message.timestamp) }}</p>
+                        </div>
+                    </div>
+                } @else {
+                     <div class="flex items-start gap-3">
+                        <img [src]="conv.influencerAvatar" [alt]="conv.influencerName" class="w-8 h-8 rounded-full flex-shrink-0">
+                        <div class="max-w-lg p-3 bg-white text-slate-800 rounded-lg shadow-sm">
+                            <p class="text-sm">{{ message.content }}</p>
+                            <p class="text-xs mt-1 text-slate-400">{{ formatTimestamp(message.timestamp) }}</p>
+                        </div>
+                    </div>
+                }
+              }
+            </div>
+
+            <!-- Reply Box -->
+            <div class="p-4 bg-white flex-shrink-0">
+              <div class="flex items-center gap-2">
+                <button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+                    <app-icon featureName="Paperclip" size="20" color="currentColor"></app-icon>
+                </button>
+                <div class="relative flex-grow">
+                    <textarea [(ngModel)]="newMessage" 
+                            (keydown.enter)="sendMessage(); $event.preventDefault()"
+                            placeholder="Type your message..." 
+                            rows="1" 
+                            class="w-full p-2 pr-24 border border-slate-200 rounded-md h-[42px] shadow-sm focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20 focus:outline-none transition resize-none"></textarea>
+                    <button (click)="sendMessage()" class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-[#003fb5] primary-btn text-white text-sm font-semibold shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all">
+                    Send
+                    </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Deal Context Sidebar -->
+          <div class="w-72 flex-shrink-0 bg-slate-50 flex flex-col">
+            <div class="p-4">
+              <h3 class="font-bold text-slate-800">Deal Context</h3>
+            </div>
+            <div class="p-4 space-y-4 text-sm overflow-y-auto">
+              <div>
+                <label class="font-semibold text-slate-600">Campaign</label>
+                <p class="mt-1 text-slate-800">{{ conv.campaignName || 'N/A' }}</p>
+              </div>
+              <div>
+                <label class="font-semibold text-slate-600">Current Status</label>
+                @if(conv.progressStatus) {
+                  <p class="mt-1 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full" [class]="getStatusColor(conv.progressStatus)">
+                    {{ conv.progressStatus }}
+                  </p>
+                } @else {
+                   <p class="mt-1 text-slate-800">N/A</p>
+                }
+              </div>
+              <div>
+                <label class="font-semibold text-slate-600">Agreed Price</label>
+                <p class="mt-1 text-slate-800">{{ conv.budget ? ('$' + conv.budget.toLocaleString()) : 'Not set' }}</p>
+              </div>
+              <div>
+                <label class="font-semibold text-slate-600">Deliverables</label>
+                @if(conv.deliverables && conv.deliverables.length > 0) {
+                  <div class="mt-1 space-y-1">
+                    @for(link of conv.deliverables; track link) {
+                      <a [href]="link" target="_blank" class="flex items-center gap-2 text-[#003fb5] hover:underline break-all">
+                        <app-icon featureName="Link" size="16" color="currentColor" class="w-4 h-4 flex-shrink-0"></app-icon>
+                        <span class="truncate">{{ link }}</span>
+                      </a>
+                    }
+                  </div>
+                } @else {
+                  <p class="mt-1 text-slate-500">None provided</p>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Add to Campaign Modal -->
+@if (showAddToCampaignModal() && selectedInfluencerDetails(); as influencer) {
+  <div class="fixed inset-0 bg-black/30 z-40 animate-fade-in" (click)="closeModal()"></div>
+  <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-md z-50 animate-fade-in rounded-lg shadow-xl">
+    <div class="p-6">
+      <h3 class="text-lg font-bold text-slate-900">
+          Add {{ influencer.name }} to a campaign
+      </h3>
+      <div class="mt-4 space-y-1">
+        <label class="block text-sm font-medium text-slate-700">Select a campaign</label>
+        <div class="relative custom-dropdown-container">
+            <button (click)="toggleCampaignModalDropdown()"
+                    class="w-full h-[42px] bg-white border border-slate-200 rounded-md flex items-center justify-between px-3 py-2 text-left focus:outline-none focus:border-[#003fb5] focus:ring-1 focus:ring-[#003fb5]/20">
+              <span class="text-sm">{{ selectedCampaignName() }}</span>
+              <app-icon featureName="ChevronDown" size="20" color="currentColor" class="text-[#003fb5] transition-transform" [class.rotate-180]="isCampaignModalDropdownOpen()"></app-icon>
+            </button>
+            @if (isCampaignModalDropdownOpen()) {
+              <div class="absolute top-full left-0 mt-1 w-full bg-white rounded-md shadow-lg z-10 py-1 animate-fade-in ring-1 ring-black ring-opacity-5">
+                @if (campaigns().length === 0) {
+                    <div class="px-3 py-2 text-sm text-slate-500">No campaigns available</div>
+                } @else {
+                  @for(campaign of campaigns(); track campaign.id) {
+                    <button (click)="selectCampaignForModal(campaign.id)"
+                            class="w-full text-left px-3 py-2 text-sm"
+                            [class]="selectedCampaignId() === campaign.id ? 'bg-blue-100 text-blue-800' : 'text-slate-700 hover:bg-[#003fb5]/10'">
+                      {{ campaign.name }}
+                    </button>
+                  }
+                }
+              </div>
+            }
+          </div>
+      </div>
+    </div>
+    <div class="bg-slate-50 px-6 py-3 flex justify-end gap-3 rounded-b-lg">
+      <button type="button" (click)="closeModal()" class="px-4 py-2 bg-white text-sm font-medium text-slate-700 border border-slate-200 rounded-md hover:bg-slate-50 transition-all">Cancel</button>
+      <button type="button" (click)="addToCampaign()" [disabled]="campaigns().length === 0" class="px-4 py-2 bg-[#003fb5] text-sm font-medium text-white primary-btn hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">Add to Campaign</button>
+    </div>
+  </div>
+}
+
+<!-- New Conversation Composer -->
+@if(isComposerOpen()) {
+    <app-email-composer
+        [initialRecipients]="composerInitialRecipients()"
+        [initialSubject]="composerInitialSubject()"
+        (close)="isComposerOpen.set(false)"
+        (send)="handleSendEmail($event)"
+    ></app-email-composer>
+}

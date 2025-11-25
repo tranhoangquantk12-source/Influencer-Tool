@@ -1,0 +1,37 @@
+{
+  "name": "influencehub---influencer-management",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "ng serve",
+    "build": "ng build",
+    "preview": "ng serve --configuration=production"
+  },
+  "dependencies": {
+    "rxjs": "^7.8.2",
+    "@angular/core": "^20.1.0",
+    "@angular/compiler": "^20.1.0",
+    "@angular/platform-browser": "^20.1.0",
+    "@angular/router": "^20.1.6-0",
+    "@angular/common": "^20.1.0",
+    "@google/genai": "^1.20.0",
+    "@angular/forms": "^20.1.6-0",
+    "@tiptap/core": "2.5.7",
+    "@tiptap/angular": "2.5.7",
+    "@tiptap/starter-kit": "2.5.7",
+    "@tiptap/extension-image": "2.5.7",
+    "@tiptap/extension-placeholder": "2.5.7",
+    "@tiptap/extension-dropcursor": "2.5.7",
+    "@tiptap/suggestion": "2.5.7",
+    "@angular/build": "^20.1.0",
+    "@angular/cli": "^20.1.0",
+    "@angular/compiler-cli": "^20.1.0",
+    "tailwindcss": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}

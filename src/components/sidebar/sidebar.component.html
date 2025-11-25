@@ -1,0 +1,49 @@
+<!-- Mobile header -->
+<div class="lg:hidden flex items-center justify-between bg-slate-800 p-4 text-white">
+    <div class="flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-[#003fb5]">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+      </svg>
+      <h1 class="text-xl font-bold">InfluenceHub</h1>
+    </div>
+    <button (click)="toggleMobileMenu()" class="p-2 focus:outline-none focus:ring-2 focus:ring-[#003fb5]">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    </button>
+</div>
+
+<!-- Sidebar -->
+<aside [class.max-lg:hidden]="!isMobileMenuOpen()" class="w-64 flex-shrink-0 bg-slate-800 text-slate-200 flex flex-col z-10 absolute lg:relative inset-y-0 max-lg:w-full">
+    <div class="flex items-center justify-center h-20 border-b border-slate-700">
+      <div class="flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-[#003fb5]">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+        </svg>
+        <h1 class="text-xl font-bold">InfluenceHub</h1>
+      </div>
+    </div>
+    <nav class="flex-1 px-4 py-6 space-y-6 flex flex-col justify-between">
+        <div>
+            <div>
+                <h3 class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Menu</h3>
+                <div class="mt-2 space-y-1">
+                    @for(link of userNavLinks; track link.path) {
+                        <a [routerLink]="link.path" routerLinkActive="bg-slate-700 text-white" (click)="isMobileMenuOpen.set(false)"
+                           class="group flex items-center px-3 py-2 text-sm font-medium hover:bg-slate-700 hover:text-white transition-colors duration-200">
+                            <svg class="w-6 h-6 mr-3 text-slate-400 group-hover:text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" [innerHTML]="link.icon"></svg>
+                            <span>{{ link.label }}</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <button (click)="logout()" class="group w-full flex items-center px-3 py-2 text-sm font-medium hover:bg-slate-700 hover:text-white transition-colors duration-200">
+                <svg class="w-6 h-6 mr-3 text-slate-400 group-hover:text-slate-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+                </svg>
+                <span>Logout</span>
+            </button>
+        </div>
+    </nav>
+</aside>
